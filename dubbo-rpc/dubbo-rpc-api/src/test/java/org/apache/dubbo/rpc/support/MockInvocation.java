@@ -28,18 +28,22 @@ import java.util.Map;
  */
 public class MockInvocation implements Invocation {
 
+    @Override
     public String getMethodName() {
         return "echo";
     }
 
+    @Override
     public Class<?>[] getParameterTypes() {
         return new Class[]{String.class};
     }
 
+    @Override
     public Object[] getArguments() {
         return new Object[]{"aa"};
     }
 
+    @Override
     public Map<String, String> getAttachments() {
         Map<String, String> attachments = new HashMap<String, String>();
         attachments.put(Constants.PATH_KEY, "dubbo");
@@ -51,6 +55,7 @@ public class MockInvocation implements Invocation {
         return attachments;
     }
 
+    @Override
     public Invoker<?> getInvoker() {
         return null;
     }

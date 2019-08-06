@@ -66,12 +66,22 @@ public abstract class AbstractLoadBalance implements LoadBalance {
      * @return weight
      */
     protected int getWeight(Invoker<?> invoker, Invocation invocation) {
+
+        // 获取权重 默认 100
         int weight = invoker.getUrl().getMethodParameter(invocation.getMethodName(), Constants.WEIGHT_KEY, Constants.DEFAULT_WEIGHT);
         if (weight > 0) {
+
+            // 启动时间
             long timestamp = invoker.getUrl().getParameter(Constants.REMOTE_TIMESTAMP_KEY, 0L);
             if (timestamp > 0L) {
+
+                // 工作时长
                 int uptime = (int) (System.currentTimeMillis() - timestamp);
+
+                // 预热时间 默认 10 分钟
                 int warmup = invoker.getUrl().getParameter(Constants.WARMUP_KEY, Constants.DEFAULT_WARMUP);
+
+                // 启动时间小于热身时间的情况 （未预热流量小 随着热身完成 流量逐渐增加）
                 if (uptime > 0 && uptime < warmup) {
                     weight = calculateWarmupWeight(uptime, warmup, weight);
                 }

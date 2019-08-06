@@ -57,6 +57,7 @@ public class MyInvoker<T> implements Invoker<T> {
         return false;
     }
 
+    @Override
     public Result invoke(Invocation invocation) throws RpcException {
         RpcResult result = new RpcResult();
         if (hasException == false) {

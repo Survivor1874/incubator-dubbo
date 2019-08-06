@@ -28,6 +28,7 @@ import org.apache.dubbo.remoting.transport.dispatcher.all.AllDispatcher;
 @SPI(AllDispatcher.NAME)
 public interface Dispatcher {
 
+
     /**
      * dispatch the message to threadpool.
      *
@@ -36,7 +37,9 @@ public interface Dispatcher {
      * @return channel handler
      */
     @Adaptive({Constants.DISPATCHER_KEY, "dispather", "channel.handler"})
-    // The last two parameters are reserved for compatibility with the old configuration
-    ChannelHandler dispatch(ChannelHandler handler, URL url);
 
+    /**
+     * The last two parameters are reserved for compatibility with the old configuration
+     */
+    ChannelHandler dispatch(ChannelHandler handler, URL url);
 }

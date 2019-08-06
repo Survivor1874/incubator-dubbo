@@ -86,8 +86,11 @@ public class MetadataReportService {
                 Class interfaceClass = Class.forName(interfaceName);
                 FullServiceDefinition fullServiceDefinition = ServiceDefinitionBuilder.buildFullDefinition(interfaceClass, providerUrl.getParameters());
                 metadataReport.storeProviderMetadata(new MetadataIdentifier(providerUrl.getServiceInterface(),
-                        providerUrl.getParameter(Constants.VERSION_KEY), providerUrl.getParameter(Constants.GROUP_KEY),
-                        Constants.PROVIDER_SIDE,providerUrl.getParameter(Constants.APPLICATION_KEY)), fullServiceDefinition);
+                        providerUrl.getParameter(Constants.VERSION_KEY),
+                        providerUrl.getParameter(Constants.GROUP_KEY),
+                        Constants.PROVIDER_SIDE,
+                        providerUrl.getParameter(Constants.APPLICATION_KEY)),
+                        fullServiceDefinition);
                 return;
             }
             logger.error("publishProvider interfaceName is empty . providerUrl: " + providerUrl.toFullString());

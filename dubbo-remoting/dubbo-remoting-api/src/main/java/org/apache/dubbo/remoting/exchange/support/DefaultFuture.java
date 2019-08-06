@@ -48,14 +48,17 @@ public class DefaultFuture implements ResponseFuture {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultFuture.class);
 
+    /**
+     * 缓存 requestId 和 Channel
+     */
     private static final Map<Long, Channel> CHANNELS = new ConcurrentHashMap<>();
 
+    /**
+     * 缓存 requestId 和 Feature
+     */
     private static final Map<Long, DefaultFuture> FUTURES = new ConcurrentHashMap<>();
 
-    public static final Timer TIME_OUT_TIMER = new HashedWheelTimer(
-            new NamedThreadFactory("dubbo-future-timeout", true),
-            30,
-            TimeUnit.MILLISECONDS);
+    public static final Timer TIME_OUT_TIMER = new HashedWheelTimer(new NamedThreadFactory("dubbo-future-timeout", true), 30, TimeUnit.MILLISECONDS);
 
     // invoke id.
     private final long id;
@@ -174,6 +177,7 @@ public class DefaultFuture implements ResponseFuture {
             lock.lock();
             try {
                 while (!isDone()) {
+                    // 阻塞
                     done.await(timeout, TimeUnit.MILLISECONDS);
                     if (isDone() || System.currentTimeMillis() - start > timeout) {
                         break;

@@ -40,6 +40,7 @@ public class MockProtocol implements Protocol {
     /* (non-Javadoc)
      * @see org.apache.dubbo.rpc.Protocol#export(org.apache.dubbo.rpc.Invoker)
      */
+    @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         return Mockito.mock(Exporter.class);
     }
@@ -66,6 +67,7 @@ public class MockProtocol implements Protocol {
                 return true;
             }
 
+            @Override
             public Result invoke(Invocation invocation) throws RpcException {
                 return null;
             }

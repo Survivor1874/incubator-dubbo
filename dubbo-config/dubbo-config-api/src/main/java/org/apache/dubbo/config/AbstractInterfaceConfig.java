@@ -174,8 +174,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
         createApplicationIfAbsent();
 
         if (!application.isValid()) {
-            throw new IllegalStateException("No application config found or it's not a valid config! " +
-                    "Please add <dubbo:application name=\"...\" /> to your spring config.");
+            throw new IllegalStateException("No application config found or it's not a valid config! " + "Please add <dubbo:application name=\"...\" /> to your spring config.");
         }
 
         ApplicationModel.setApplication(application.getName());
@@ -255,7 +254,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
             if (StringUtils.isNotEmpty(appGroup)) {
                 appConfigContent = dynamicConfiguration.getConfig
                         (StringUtils.isNotEmpty(configCenter.getAppConfigFile()) ? configCenter.getAppConfigFile() : configCenter.getConfigFile(),
-                         appGroup
+                                appGroup
                         );
             }
             try {
@@ -278,7 +277,6 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     }
 
     /**
-     *
      * Load the registry and conversion it to {@link URL}, the priority order is: system property > dubbo registry config
      *
      * @param provider whether it is the provider side
@@ -289,11 +287,16 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
         List<URL> registryList = new ArrayList<URL>();
         if (CollectionUtils.isNotEmpty(registries)) {
             for (RegistryConfig config : registries) {
+
+                // zookeeper 地址（如果是 zookeeper 注册中心）
                 String address = config.getAddress();
+
                 if (StringUtils.isEmpty(address)) {
                     address = Constants.ANYHOST_VALUE;
                 }
+
                 if (!RegistryConfig.NO_AVAILABLE.equalsIgnoreCase(address)) {
+
                     Map<String, String> map = new HashMap<String, String>();
                     appendParameters(map, application);
                     appendParameters(map, config);
@@ -321,7 +324,6 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     }
 
     /**
-     *
      * Load the monitor config from the system properties and conversation it to {@link URL}
      *
      * @param registryURL
@@ -332,7 +334,9 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
         Map<String, String> map = new HashMap<String, String>();
         map.put(Constants.INTERFACE_KEY, MonitorService.class.getName());
         appendRuntimeParameters(map);
+
         //set ip
+        // 获取服务消费者 ip 地址
         String hostToRegistry = ConfigUtils.getSystemProperty(Constants.DUBBO_IP_TO_REGISTRY);
         if (StringUtils.isEmpty(hostToRegistry)) {
             hostToRegistry = NetUtils.getLocalHost();
@@ -396,7 +400,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
      * methods configured in the configuration file are included in the interface of remote service
      *
      * @param interfaceClass the interface of remote service
-     * @param methods the methods configured
+     * @param methods        the methods configured
      */
     protected void checkInterfaceAndMethods(Class<?> interfaceClass, List<MethodConfig> methods) {
         // interface cannot be null
@@ -516,12 +520,12 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
             if (CollectionUtils.isEmpty(registries)) {
                 setRegistries(
                         ConfigManager.getInstance().getDefaultRegistries()
-                        .filter(CollectionUtils::isNotEmpty)
-                        .orElseGet(() -> {
-                            RegistryConfig registryConfig = new RegistryConfig();
-                            registryConfig.refresh();
-                            return Arrays.asList(registryConfig);
-                        })
+                                .filter(CollectionUtils::isNotEmpty)
+                                .orElseGet(() -> {
+                                    RegistryConfig registryConfig = new RegistryConfig();
+                                    registryConfig.refresh();
+                                    return Arrays.asList(registryConfig);
+                                })
                 );
             }
         } else {

@@ -138,6 +138,7 @@ public class ProtocolConfig extends AbstractConfig {
 
     /**
      * Thread dispatch mode
+     * 线程模式
      */
     private String dispatcher;
 

@@ -30,6 +30,6 @@ public class Application {
         context.start();
         DemoService demoService = context.getBean("demoService", DemoService.class);
         String hello = demoService.sayHello("world");
-        System.out.println("result: " + hello);
+        System.err.println("result: " + hello);
     }
 }

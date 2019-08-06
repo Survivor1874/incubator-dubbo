@@ -53,6 +53,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
+ * 解析所有 dubbo 的标签
  * AbstractBeanDefinitionParser
  *
  * @export

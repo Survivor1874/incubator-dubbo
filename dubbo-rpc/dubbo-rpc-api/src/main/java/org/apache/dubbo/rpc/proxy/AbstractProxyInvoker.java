@@ -36,6 +36,7 @@ import java.util.concurrent.CompletableFuture;
  * InvokerWrapper
  */
 public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
+
     Logger logger = LoggerFactory.getLogger(AbstractProxyInvoker.class);
 
     private final T proxy;
@@ -86,7 +87,8 @@ public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
             Object obj = doInvoke(proxy, invocation.getMethodName(), invocation.getParameterTypes(), invocation.getArguments());
             if (RpcUtils.isReturnTypeFuture(invocation)) {
                 return new AsyncRpcResult((CompletableFuture<Object>) obj);
-            } else if (rpcContext.isAsyncStarted()) { // ignore obj in case of RpcContext.startAsync()? always rely on user to write back.
+            } else if (rpcContext.isAsyncStarted()) {
+                // ignore obj in case of RpcContext.startAsync()? always rely on user to write back.
                 return new AsyncRpcResult(((AsyncContextImpl)(rpcContext.getAsyncContext())).getInternalFuture());
             } else {
                 return new RpcResult(obj);

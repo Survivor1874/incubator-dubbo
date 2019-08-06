@@ -243,12 +243,17 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         if (invokerUrls.size() == 1
                 && invokerUrls.get(0) != null
                 && Constants.EMPTY_PROTOCOL.equals(invokerUrls.get(0).getProtocol())) {
-            this.forbidden = true; // Forbid to access
+
+            // Forbid to access
+            this.forbidden = true;
             this.invokers = Collections.emptyList();
             routerChain.setInvokers(this.invokers);
-            destroyAllInvokers(); // Close all invokers
+
+            // Close all invokers
+            destroyAllInvokers();
         } else {
-            this.forbidden = false; // Allow to access
+            // Allow to access
+            this.forbidden = false;
             Map<String, Invoker<T>> oldUrlInvokerMap = this.urlInvokerMap; // local reference
             if (invokerUrls == Collections.<URL>emptyList()) {
                 invokerUrls = new ArrayList<>();
@@ -273,8 +278,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
              *
              */
             if (CollectionUtils.isEmptyMap(newUrlInvokerMap)) {
-                logger.error(new IllegalStateException("urls to invokers error .invokerUrls.size :" + invokerUrls.size() + ", invoker.size :0. urls :" + invokerUrls
-                        .toString()));
+                logger.error(new IllegalStateException("urls to invokers error .invokerUrls.size :" + invokerUrls.size() + ", invoker.size :0. urls :" + invokerUrls.toString()));
                 return;
             }
 
@@ -355,10 +359,12 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
      * @return invokers
      */
     private Map<String, Invoker<T>> toInvokers(List<URL> urls) {
+
         Map<String, Invoker<T>> newUrlInvokerMap = new HashMap<>();
         if (urls == null || urls.isEmpty()) {
             return newUrlInvokerMap;
         }
+
         Set<String> keys = new HashSet<>();
         String queryProtocols = this.queryMap.get(Constants.PROTOCOL_KEY);
         for (URL providerUrl : urls) {
@@ -380,23 +386,26 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 continue;
             }
             if (!ExtensionLoader.getExtensionLoader(Protocol.class).hasExtension(providerUrl.getProtocol())) {
-                logger.error(new IllegalStateException("Unsupported protocol " + providerUrl.getProtocol() +
-                        " in notified url: " + providerUrl + " from registry " + getUrl().getAddress() +
-                        " to consumer " + NetUtils.getLocalHost() + ", supported protocol: " +
-                        ExtensionLoader.getExtensionLoader(Protocol.class).getSupportedExtensions()));
+                logger.error(new IllegalStateException("Unsupported protocol " + providerUrl.getProtocol() + " in notified url: " + providerUrl + " from registry " + getUrl().getAddress() + " to consumer " + NetUtils.getLocalHost() + ", supported protocol: " + ExtensionLoader.getExtensionLoader(Protocol.class).getSupportedExtensions()));
                 continue;
             }
             URL url = mergeUrl(providerUrl);
 
-            String key = url.toFullString(); // The parameter urls are sorted
-            if (keys.contains(key)) { // Repeated url
+            // The parameter urls are sorted
+            String key = url.toFullString();
+
+            // Repeated url
+            if (keys.contains(key)) {
                 continue;
             }
+
             keys.add(key);
             // Cache key is url that does not merge with consumer side parameters, regardless of how the consumer combines parameters, if the server url changes, then refer again
-            Map<String, Invoker<T>> localUrlInvokerMap = this.urlInvokerMap; // local reference
+            // local reference
+            Map<String, Invoker<T>> localUrlInvokerMap = this.urlInvokerMap;
             Invoker<T> invoker = localUrlInvokerMap == null ? null : localUrlInvokerMap.get(key);
-            if (invoker == null) { // Not in the cache, refer again
+            // Not in the cache, refer again
+            if (invoker == null) {
                 try {
                     boolean enabled = true;
                     if (url.hasParameter(Constants.DISABLED_KEY)) {
@@ -635,14 +644,16 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     private boolean isValidCategory(URL url) {
         String category = url.getParameter(CATEGORY_KEY, DEFAULT_CATEGORY);
-        if ((ROUTERS_CATEGORY.equals(category) || ROUTE_PROTOCOL.equals(url.getProtocol())) ||
-                PROVIDERS_CATEGORY.equals(category) ||
-                CONFIGURATORS_CATEGORY.equals(category) || DYNAMIC_CONFIGURATORS_CATEGORY.equals(category) ||
-                APP_DYNAMIC_CONFIGURATORS_CATEGORY.equals(category)) {
+
+        if ((ROUTERS_CATEGORY.equals(category) || ROUTE_PROTOCOL.equals(url.getProtocol()))
+                || PROVIDERS_CATEGORY.equals(category)
+                || CONFIGURATORS_CATEGORY.equals(category)
+                || DYNAMIC_CONFIGURATORS_CATEGORY.equals(category)
+                || APP_DYNAMIC_CONFIGURATORS_CATEGORY.equals(category)) {
             return true;
         }
-        logger.warn("Unsupported category " + category + " in notified url: " + url + " from registry " +
-                getUrl().getAddress() + " to consumer " + NetUtils.getLocalHost());
+
+        logger.warn("Unsupported category " + category + " in notified url: " + url + " from registry " + getUrl().getAddress() + " to consumer " + NetUtils.getLocalHost());
         return false;
     }
 
