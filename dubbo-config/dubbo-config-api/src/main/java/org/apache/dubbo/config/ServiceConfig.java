@@ -260,20 +260,56 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         return unexported;
     }
 
+    /**
+     * 对ServiceConfig中其他字段初始化，以及从注册中心中获取一些配置等
+     */
     public void checkAndUpdateSubConfigs() {
+
+
         // Use default configs defined explicitly on global configs
+        /*
+         * 这个方法是放在第一，主要是绑定一些指定的配置，但是在 ServiceConfig 并没有同步的配置，
+         * 例如 application, module, registries, monitor, protocols, configCenter等，
+         * 但是里面有优先级，在 registries, monitor 的设置上具有优先级，
+         * 即 ProviderConfig > ModuleConfig > ApplicationConfig 。
+         * 而这样的优先级方法，则是通
+         * == null 实现，即如果已经被设定了，就不会再次设定了。
+         */
         completeCompoundConfigs();
 
 
         // Config Center should always being started first.
+        /*
+         * 首先尝试设定 当前 AbstractInterfaceConfig 子类的值，
+         * 即如果 AbstractInterfaceConfig 中 configCenter 不为空，
+         * 就设置当前子类的 configCenter 值， 在本例中就是 ServiceConfig 的。
+         * 然后，如果 ConfigCenter 不为空，那么就尝试 refresh 一下，从而从新获取配置。
+         * 以及 执行 prepareEnviroment 方法
+         * 最后，将会由配置管理器 ConfigManager 执行 refreshAll 方法，而这个方法
+         * 将 ApplicationConfig, MonitorConfig, ModuleConfig, ProtocolConfig, RegistryConfig, ProviderConfig, ConsumerConfig 会都执行 refresh 方法。
+         */
         startConfigCenter();
 
+        /*
+         * 实例化 ProviderConfig过程，如果 ProviderConfig 不存在，那么就新建一个默认的，并执行 refresh 方法。
+         */
         checkDefault();
 
+
+        // 尝试初始化 ApplicationConfig，最后会判断是否有 name，通过判断 name 来判断，如果没有，则会抛异常
+        // 在 ApplicationModel 中保存 ApplicationConfig 的 name。
+        // 设置 SHUTDOWN_WAIT_SECONDS_KEY 和 SHUTDOWN_WAIT_KEY 的值到 System.proterty中，这两个属性用于Dubbo优雅停机
         checkApplication();
+
         checkRegistry();
+
+        // 实例化 ProtocolConfig， 这里会判断是否有 providerConfig，如果有的化则会会设置为 ProviderConfig 的配置，
+        // 但是如果在ServiceConfig中自己有配置 ProtocolConfig 信息，则会使用 ServiceConfig 信息
         checkProtocol();
+
         this.refresh();
+
+        // 用于设置 MetadataReportConfig，尝试从配置中加载其配置，就算 MetadataReportConfig 不可用（即 unvalid），也只会报警告。
         checkMetadataReport();
 
         if (StringUtils.isEmpty(interfaceName)) {
@@ -287,15 +323,18 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
             }
         } else {
             try {
-                interfaceClass = Class.forName(interfaceName, true, Thread.currentThread()
-                        .getContextClassLoader());
+                interfaceClass = Class.forName(interfaceName, true, Thread.currentThread().getContextClassLoader());
             } catch (ClassNotFoundException e) {
                 throw new IllegalStateException(e.getMessage(), e);
             }
+
+            // 检查接口中是否包含方法
             checkInterfaceAndMethods(interfaceClass, methods);
+
             checkRef();
             generic = Boolean.FALSE.toString();
         }
+
         if (local != null) {
             if ("true".equals(local)) {
                 local = interfaceName + "Local";
@@ -330,6 +369,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
     public synchronized void export() {
 
+        // 对是否为 GenericService 进行适配（GenricService：泛化调用 是一种 Dubbo 提供的特殊角色，不需要引入jar包，直接通过GenericService进行调用，用于服务测试以及API服务网关）
+        // 检查ref 和 interface 是否为同一个类别
+        // 检查Stub和 Mock属性，从而实现不同逻辑调用
         checkAndUpdateSubConfigs();
 
         if (!shouldExport()) {
@@ -386,9 +428,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
             throw new IllegalStateException("ref not allow null!");
         }
         if (!interfaceClass.isInstance(ref)) {
-            throw new IllegalStateException("The class "
-                    + ref.getClass().getName() + " unimplemented interface "
-                    + interfaceClass + "!");
+            throw new IllegalStateException("The class " + ref.getClass().getName() + " unimplemented interface " + interfaceClass + "!");
         }
     }
 
@@ -414,6 +454,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrls() {
+
         // url 示例 ： registry://127.0.0.1:2181/org.apache.dubbo.registry.RegistryService?application=demo-provider&backup=127.0.0.1:2182,127.0.0.1:2183&dubbo=2.0.2&group=local&pid=97482&qos.port=22222&registry=zookeeper&timestamp=1563351969864
         List<URL> registryURLs = loadRegistries(true);
 
@@ -883,6 +924,10 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         if (CollectionUtils.isEmpty(protocols) && provider != null) {
             setProtocols(provider.getProtocols());
         }
+        // 先去读取 外部化配置 的所有的 protocol 信息，主要进行以下操作：
+        //
+        //找不到任何ProtocolConfig, 则会新创键一个 ProtocolConfig ，但是这一步不回指定 Protocol 类型，后续会指定为 dubbo
+        //从外部化配置以及本实例中有配置 ProtocolConfig ，则会将其初始化并refresh，而后放入到 ServiceConfig的tempProtocols中
         convertProtocolIdsToProtocols();
     }
 

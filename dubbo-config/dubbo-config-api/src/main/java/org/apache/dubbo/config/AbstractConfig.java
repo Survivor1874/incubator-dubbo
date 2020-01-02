@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 
 /**
  * Utility methods and public methods for parsing configuration
+ * 是程序员自己在程序中，或者是在yml或者xml等配置文件中配置。
  *
  * @export
  */
@@ -101,6 +102,9 @@ public abstract class AbstractConfig implements Serializable {
      */
     private static final String[] SUFFIXES = new String[]{"Config", "Bean"};
 
+    /**
+     * 在 AbstractConfig 的静态块中，Dubbo 注册了一个 shutdown hook，用于执行 Dubbo 预设的一些停机逻辑
+     */
     static {
         legacyProperties.put("dubbo.protocol.name", "dubbo.service.protocol");
         legacyProperties.put("dubbo.protocol.host", "dubbo.service.server.host");
@@ -473,7 +477,7 @@ public abstract class AbstractConfig implements Serializable {
     /**
      * Should be called after Config was fully initialized.
      * // FIXME: this method should be completely replaced by appendParameters
-     *
+     *  使用反射，将 遍历所有的 get*的获取基本类型方法,从而获取已有的配置里面的所有的字段值。
      * @return
      * @see AbstractConfig#appendParameters(Map, Object, String)
      * <p>
@@ -541,18 +545,27 @@ public abstract class AbstractConfig implements Serializable {
      */
     public void refresh() {
         try {
+
+            // 获取 多个混合配置
             CompositeConfiguration compositeConfiguration = Environment.getInstance().getConfiguration(getPrefix(), getId());
             InmemoryConfiguration config = new InmemoryConfiguration(getPrefix(), getId());
+
+            // 将当前类的 信息放入到配置中
             config.addProperties(getMetaData());
+
+            // 看 isConfigCenterFirst 的顺序，从而加载不同配置
             if (Environment.getInstance().isConfigCenterFirst()) {
                 // The sequence would be: SystemConfiguration -> AppExternalConfiguration -> ExternalConfiguration -> AbstractConfig -> PropertiesConfiguration
                 compositeConfiguration.addConfiguration(3, config);
             } else {
+
+                // 配置覆盖顺序
                 // The sequence would be: SystemConfiguration -> AbstractConfig -> AppExternalConfiguration -> ExternalConfiguration -> PropertiesConfiguration
                 compositeConfiguration.addConfiguration(1, config);
             }
 
             // loop methods, get override value and set the new value back to method
+            // 循环，填充参数
             Method[] methods = getClass().getMethods();
             for (Method method : methods) {
                 if (ClassHelper.isSetter(method)) {

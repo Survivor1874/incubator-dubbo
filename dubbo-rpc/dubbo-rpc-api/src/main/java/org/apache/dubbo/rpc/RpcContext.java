@@ -38,6 +38,8 @@ import java.util.concurrent.TimeoutException;
 
 
 /**
+ *
+ * 临时状态持有者。
  * Thread local context. (API, ThreadLocal, ThreadSafe)
  * <p>
  * Note: RpcContext is a temporary state holder. States in RpcContext changes every time when request is sent or received.

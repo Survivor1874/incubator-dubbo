@@ -26,7 +26,62 @@ import org.apache.dubbo.rpc.proxy.InvokerInvocationHandler;
 
 /**
  * JavaassistRpcProxyFactory
+ * Wrapper 是一个抽象类，其中 invokeMethod 是一个抽象方法。
+ * Dubbo 会在运行时通过 Javassist 框架为 Wrapper 生成实现类，并实现 invokeMethod 方法，该方法最终会根据调用信息调用具体的服务。
+ * 以 DemoServiceImpl 为例，Javassist 为其生成的代理类如下。
+ *
+ *
+ *
+ *
  */
+
+/**
+ *
+ * Wrapper0 是在运行时生成的，大家可使用 Arthas 进行反编译
+ *
+public class Wrapper0 extends Wrapper implements ClassGenerator.DC {
+    public static String[] pns;
+    public static Map pts;
+    public static String[] mns;
+    public static String[] dmns;
+    public static Class[] mts0;
+
+    // 省略其他方法
+
+    public Object invokeMethod(Object object, String string, Class[] arrclass, Object[] arrobject) throws InvocationTargetException {
+        DemoService demoService;
+        try {
+            // 类型转换
+            demoService = (DemoService)object;
+        }
+        catch (Throwable throwable) {
+            throw new IllegalArgumentException(throwable);
+        }
+        try {
+            // 根据方法名调用指定的方法
+            if ("sayHello".equals(string) && arrclass.length == 1) {
+                return demoService.sayHello((String)arrobject[0]);
+            }
+        }
+        catch (Throwable throwable) {
+            throw new InvocationTargetException(throwable);
+        }
+        throw new NoSuchMethodException(new StringBuffer().append("Not found method \"").append(string).append("\" in class com.alibaba.dubbo.demo.DemoService.").toString());
+    }
+}
+
+ 调用过程
+ ChannelEventRunnable#run()
+ —> DecodeHandler#received(Channel, Object)
+ —> HeaderExchangeHandler#received(Channel, Object)
+ —> HeaderExchangeHandler#handleRequest(ExchangeChannel, Request)
+ —> DubboProtocol.requestHandler#reply(ExchangeChannel, Object)
+ —> Filter#invoke(Invoker, Invocation)
+ —> AbstractProxyInvoker#invoke(Invocation)
+ —> Wrapper0#invokeMethod(Object, String, Class[], Object[])
+ —> DemoServiceImpl#sayHello(String)
+
+ **/
 public class JavassistProxyFactory extends AbstractProxyFactory {
 
     @Override

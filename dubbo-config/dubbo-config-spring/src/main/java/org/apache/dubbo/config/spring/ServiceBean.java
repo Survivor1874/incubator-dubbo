@@ -86,6 +86,11 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
+
+        /**
+         * 注册 spring 优雅停机 hook
+         * 取消 jvm 停机 hook
+         */
         SpringExtensionFactory.addApplicationContext(applicationContext);
         supportedApplicationListener = addApplicationListener(applicationContext, this);
     }

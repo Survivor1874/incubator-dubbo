@@ -47,7 +47,8 @@ import java.util.concurrent.ConcurrentMap;
  *
  * @since 2.5.7
  */
-public class ReferenceAnnotationBeanPostProcessor extends AnnotationInjectedBeanPostProcessor<Reference>
+public class ReferenceAnnotationBeanPostProcessor
+        extends AnnotationInjectedBeanPostProcessor<Reference>
         implements ApplicationContextAware, ApplicationListener {
 
     /**

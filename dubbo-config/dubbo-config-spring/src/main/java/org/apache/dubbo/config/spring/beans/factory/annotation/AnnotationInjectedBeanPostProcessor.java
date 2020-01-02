@@ -69,8 +69,9 @@ import static org.springframework.core.annotation.AnnotationUtils.getAnnotation;
  *
  * @since 2.6.6
  */
-public abstract class AnnotationInjectedBeanPostProcessor<A extends Annotation> extends
-        InstantiationAwareBeanPostProcessorAdapter implements MergedBeanDefinitionPostProcessor, PriorityOrdered,
+public abstract class AnnotationInjectedBeanPostProcessor<A extends Annotation>
+        extends InstantiationAwareBeanPostProcessorAdapter
+        implements MergedBeanDefinitionPostProcessor, PriorityOrdered,
         BeanFactoryAware, BeanClassLoaderAware, EnvironmentAware, DisposableBean {
 
     private final static int CACHE_SIZE = Integer.getInteger("", 32);
@@ -121,8 +122,7 @@ public abstract class AnnotationInjectedBeanPostProcessor<A extends Annotation> 
     }
 
     @Override
-    public PropertyValues postProcessPropertyValues(
-            PropertyValues pvs, PropertyDescriptor[] pds, Object bean, String beanName) throws BeanCreationException {
+    public PropertyValues postProcessPropertyValues(PropertyValues pvs, PropertyDescriptor[] pds, Object bean, String beanName) throws BeanCreationException {
 
         InjectionMetadata metadata = findInjectionMetadata(beanName, bean.getClass(), pvs);
         try {

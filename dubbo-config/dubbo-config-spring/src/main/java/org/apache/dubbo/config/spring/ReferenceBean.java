@@ -67,6 +67,8 @@ public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean,
     }
 
     /**
+     * 引入
+     * consumer 注入 dubbo bean 开始
      * 当我们的服务被注入到其他类中时，
      * Spring 会第一时间调用 getObject 方法，并由该方法执行服务引用逻辑
      *
@@ -96,7 +98,9 @@ public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean,
         }
 
         if (getConsumer() == null) {
-            Map<String, ConsumerConfig> consumerConfigMap = applicationContext == null ? null : BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, ConsumerConfig.class, false, false);
+            Map<String, ConsumerConfig> consumerConfigMap = applicationContext == null
+                    ? null
+                    : BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, ConsumerConfig.class, false, false);
             if (consumerConfigMap != null && consumerConfigMap.size() > 0) {
                 ConsumerConfig consumerConfig = null;
                 for (ConsumerConfig config : consumerConfigMap.values()) {
@@ -114,7 +118,9 @@ public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean,
         }
         if (getApplication() == null
                 && (getConsumer() == null || getConsumer().getApplication() == null)) {
-            Map<String, ApplicationConfig> applicationConfigMap = applicationContext == null ? null : BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, ApplicationConfig.class, false, false);
+            Map<String, ApplicationConfig> applicationConfigMap = applicationContext == null
+                    ? null
+                    : BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, ApplicationConfig.class, false, false);
             if (applicationConfigMap != null && applicationConfigMap.size() > 0) {
                 ApplicationConfig applicationConfig = null;
                 for (ApplicationConfig config : applicationConfigMap.values()) {
@@ -130,7 +136,9 @@ public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean,
         }
         if (getModule() == null
                 && (getConsumer() == null || getConsumer().getModule() == null)) {
-            Map<String, ModuleConfig> moduleConfigMap = applicationContext == null ? null : BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, ModuleConfig.class, false, false);
+            Map<String, ModuleConfig> moduleConfigMap = applicationContext == null
+                    ? null
+                    : BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext, ModuleConfig.class, false, false);
             if (moduleConfigMap != null && moduleConfigMap.size() > 0) {
                 ModuleConfig moduleConfig = null;
                 for (ModuleConfig config : moduleConfigMap.values()) {

@@ -66,6 +66,8 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     private static final long serialVersionUID = -1559314110797223229L;
 
     /**
+     * 接口本地实现类的名称
+     * <p>
      * Local impl class name for the service interface
      */
     protected String local;
@@ -152,19 +154,27 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
 
     /**
      * Check whether the registry config is exists, and then conversion it to {@link RegistryConfig}
+     * 1、从当前 ReferenceConfig中加载 registries信息，并设置为 RegistryConfig
+     * 2、如果上一步中，没有发现任何registries信息，就会尝试从 ** 外部化配置** 中获取
+     * 3、依次判断各个注册中心是否有用，没有用 即 !registryConfig.isValid() 则会抛出异常
+     * 4、尝试从注册中心中读取配置，即将注册中心作为配置中心，并重新刷新整个配置读取。将注册中心变为默认的配置中心，在 useRegistryForConfigIfNecessary 有所体现
      */
     protected void checkRegistry() {
+
+        // 从当前 ReferenceConfig 中加载注册中心配置
         loadRegistriesFromBackwardConfig();
 
+        // 读取外部化配置的
         convertRegistryIdsToRegistries();
 
+        // 判断是否有用
         for (RegistryConfig registryConfig : registries) {
             if (!registryConfig.isValid()) {
-                throw new IllegalStateException("No registry config found or it's not a valid config! " +
-                        "The registry config is: " + registryConfig);
+                throw new IllegalStateException("No registry config found or it's not a valid config! " + "The registry config is: " + registryConfig);
             }
         }
 
+        // 将读取到的配置中心，进一步获取
         useRegistryForConfigIfNecessary();
     }
 
@@ -233,31 +243,54 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
             ConfigManager.getInstance().getConfigCenter().ifPresent(cc -> this.configCenter = cc);
         }
 
+        /*
+         *  configCenter 的初始化 单独执行
+         *  当配置中心不为空时候，就会去执行 prepareEnvironment，这个方法主要就是读取配置中心的配置。
+         */
         if (this.configCenter != null) {
             // TODO there may have duplicate refresh
             this.configCenter.refresh();
+
+            // 前期检查工作
             prepareEnvironment();
         }
         ConfigManager.getInstance().refreshAll();
     }
 
+    /**
+     * 通过SPI机制不同类型配置中心配置
+     * 读取配置数据到Environment的 externalConfigurationMap 和 appExternalConfigurationMap
+     */
     private void prepareEnvironment() {
         if (configCenter.isValid()) {
             if (!configCenter.checkOrUpdateInited()) {
                 return;
             }
+
+            // 加载 配置中心
             DynamicConfiguration dynamicConfiguration = getDynamicConfiguration(configCenter.toUrl());
+
+            // 从配置中心获取 configFile 配置
             String configContent = dynamicConfiguration.getConfig(configCenter.getConfigFile(), configCenter.getGroup());
 
             String appGroup = application != null ? application.getName() : null;
             String appConfigContent = null;
+
+            // 从配置中心获取 appConfigFile 配置
             if (StringUtils.isNotEmpty(appGroup)) {
-                appConfigContent = dynamicConfiguration.getConfig
-                        (StringUtils.isNotEmpty(configCenter.getAppConfigFile()) ? configCenter.getAppConfigFile() : configCenter.getConfigFile(),
-                                appGroup
-                        );
+
+                // 如果ConfigCenter没有appConfigFile，则会使用 configFile 替代 appConfigFile。
+                // 最终，从配置文件中获取到的，是 String类型，一行一个数据，最后用 Properties 再将 其读出，执行
+                // updateExternalConfigurationMap或者 updateAppExternalConfigurationMap 进行更新。
+                appConfigContent = dynamicConfiguration.getConfig(
+                        StringUtils.isNotEmpty(configCenter.getAppConfigFile())
+                                ? configCenter.getAppConfigFile()
+                                : configCenter.getConfigFile(),
+                        appGroup);
             }
             try {
+
+                // 将获取到的String 类型的 url类型 数据转化为 key value
                 Environment.getInstance().setConfigCenterFirst(configCenter.isHighestPriority());
                 Environment.getInstance().updateExternalConfigurationMap(parseProperties(configContent));
                 Environment.getInstance().updateAppExternalConfigurationMap(parseProperties(appConfigContent));
@@ -268,9 +301,22 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     }
 
     private DynamicConfiguration getDynamicConfiguration(URL url) {
+
+        // SPI 方式，加载不同的 ConfigurationFactory
+        // 目前dubbo（2.7.2）支持以下集中配置中心：
+        // Apollo：是携程框架部门研发的开源配置管理中心 。Apollo GitHub 介绍
+        // Consul：是Spring Cloud的一款分布式配置中心。Consul GitHub 介绍
+        // etcd：分布式可靠的键值对存储。etcd GitHub介绍
+        // Nacos：阿里巴巴 开源的一款分布式注册中心。 Nacos GitHub 介绍
+        // Zookeeper： Apache 一款开源的 配置中心。Zookeeper GitHub介绍
+
+        // NopDynamicConfiguration 只是一个空架子，只是实现 DynamicConfiguration 但是没有实现任何方法。
+        // 以前是作为默认注册中心，即没有声明配置中心时候以它作为默认配置中心。
         DynamicConfigurationFactory factories = ExtensionLoader
                 .getExtensionLoader(DynamicConfigurationFactory.class)
                 .getExtension(url.getProtocol());
+
+        // 获取 动态 配置
         DynamicConfiguration configuration = factories.getDynamicConfiguration(url);
         Environment.getInstance().setDynamicConfiguration(configuration);
         return configuration;
@@ -285,6 +331,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     protected List<URL> loadRegistries(boolean provider) {
         // check && override if necessary
         List<URL> registryList = new ArrayList<URL>();
+
         if (CollectionUtils.isNotEmpty(registries)) {
             for (RegistryConfig config : registries) {
 
@@ -298,7 +345,11 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                 if (!RegistryConfig.NO_AVAILABLE.equalsIgnoreCase(address)) {
 
                     Map<String, String> map = new HashMap<String, String>();
+
+                    // {application=demo-consumer, qos.port=33333}
                     appendParameters(map, application);
+
+                    // {path=org.apache.dubbo.registry.RegistryService, protocol=zookeeper, application=demo-consumer, release=, qos.port=33333, dubbo=2.0.2, pid=72938, timestamp=1573634695089}
                     appendParameters(map, config);
                     map.put(Constants.PATH_KEY, RegistryService.class.getName());
                     appendRuntimeParameters(map);
@@ -418,15 +469,12 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                 methodBean.refresh();
                 String methodName = methodBean.getName();
                 if (StringUtils.isEmpty(methodName)) {
-                    throw new IllegalStateException("<dubbo:method> name attribute is required! Please check: " +
-                            "<dubbo:service interface=\"" + interfaceClass.getName() + "\" ... >" +
-                            "<dubbo:method name=\"\" ... /></<dubbo:reference>");
+                    throw new IllegalStateException("<dubbo:method> name attribute is required! Please check: " + "<dubbo:service interface=\"" + interfaceClass.getName() + "\" ... >" + "<dubbo:method name=\"\" ... /></<dubbo:reference>");
                 }
 
                 boolean hasMethod = Arrays.stream(interfaceClass.getMethods()).anyMatch(method -> method.getName().equals(methodName));
                 if (!hasMethod) {
-                    throw new IllegalStateException("The interface " + interfaceClass.getName()
-                            + " not found method " + methodName);
+                    throw new IllegalStateException("The interface " + interfaceClass.getName() + " not found method " + methodName);
                 }
             }
         }
@@ -479,8 +527,9 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
      */
     void checkStubAndLocal(Class<?> interfaceClass) {
         if (ConfigUtils.isNotEmpty(local)) {
-            Class<?> localClass = ConfigUtils.isDefault(local) ?
-                    ReflectUtils.forName(interfaceClass.getName() + "Local") : ReflectUtils.forName(local);
+            Class<?> localClass = ConfigUtils.isDefault(local)
+                    ? ReflectUtils.forName(interfaceClass.getName() + "Local")
+                    : ReflectUtils.forName(local);
             verify(interfaceClass, localClass);
         }
         if (ConfigUtils.isNotEmpty(stub)) {
@@ -508,10 +557,9 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     private void convertRegistryIdsToRegistries() {
         if (StringUtils.isEmpty(registryIds) && CollectionUtils.isEmpty(registries)) {
             Set<String> configedRegistries = new HashSet<>();
-            configedRegistries.addAll(getSubProperties(Environment.getInstance().getExternalConfigurationMap(),
-                    Constants.REGISTRIES_SUFFIX));
-            configedRegistries.addAll(getSubProperties(Environment.getInstance().getAppExternalConfigurationMap(),
-                    Constants.REGISTRIES_SUFFIX));
+
+            configedRegistries.addAll(getSubProperties(Environment.getInstance().getExternalConfigurationMap(), Constants.REGISTRIES_SUFFIX));
+            configedRegistries.addAll(getSubProperties(Environment.getInstance().getAppExternalConfigurationMap(), Constants.REGISTRIES_SUFFIX));
 
             registryIds = String.join(",", configedRegistries);
         }
@@ -555,7 +603,10 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     private void loadRegistriesFromBackwardConfig() {
         // for backward compatibility
         // -Ddubbo.registry.address is now deprecated.
+        // registries 配置不存在
         if (registries == null || registries.isEmpty()) {
+
+            // jvm 参数获取注册中心地址
             String address = ConfigUtils.getProperty("dubbo.registry.address");
             if (address != null && address.length() > 0) {
                 List<RegistryConfig> tmpRegistries = new ArrayList<RegistryConfig>();
@@ -579,12 +630,26 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
         registries.stream().filter(RegistryConfig::isZookeeperProtocol).findFirst().ifPresent(rc -> {
             // we use the loading status of DynamicConfiguration to decide whether ConfigCenter has been initiated.
             Environment.getInstance().getDynamicConfiguration().orElseGet(() -> {
+
+                // 获取单例的 配置管理器
                 ConfigManager configManager = ConfigManager.getInstance();
+
+                // 创建一个配置中心
                 ConfigCenterConfig cc = configManager.getConfigCenter().orElse(new ConfigCenterConfig());
+
+                // 设置协议
                 cc.setProtocol(rc.getProtocol());
+
+                // 设置地址
                 cc.setAddress(rc.getAddress());
+
+                // 设置优先级 将优先级设为false，这样就不会让这个配置中心去覆盖本地的配置。
                 cc.setHighestPriority(false);
+
+                // 设置配置中心
                 setConfigCenter(cc);
+
+                // 从配置中心刷新所有配置
                 startConfigCenter();
                 return null;
             });

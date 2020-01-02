@@ -43,6 +43,15 @@ public class SpringExtensionFactory implements ExtensionFactory {
     private static final Set<ApplicationContext> contexts = new ConcurrentHashSet<ApplicationContext>();
     private static final ApplicationListener shutdownHookListener = new ShutdownHookListener();
 
+    /**
+     * 优雅停机
+     * 这段代码寥寥数行，却是经过了深思熟虑之后的产物，期间迭代了 3 个大版本，真是不容易。
+     * 这段代码很好地解决了第 4 节提出的两个问题
+     * 担心两个钩子并发执行有问题？那就在可以注册 Spring 钩子的时候取消掉 JVM 的钩子。
+     * 担心当前 Spring 容器没有注册 Spring 钩子？那就显示调用 registerShutdownHook 进行注册。
+     *
+     * @param context
+     */
     public static void addApplicationContext(ApplicationContext context) {
         contexts.add(context);
         if (context instanceof ConfigurableApplicationContext) {

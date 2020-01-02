@@ -97,9 +97,13 @@ public class DubboProtocol extends AbstractProtocol {
             }
 
             Invocation inv = (Invocation) message;
+
+            // 获取 Invoker 实例
             Invoker<?> invoker = getInvoker(channel, inv);
             // need to consider backward-compatibility if it's a callback
             if (Boolean.TRUE.toString().equals(inv.getAttachments().get(IS_CALLBACK_SERVICE_INVOKE))) {
+
+                // 回调相关，忽略
                 String methodsStr = invoker.getUrl().getParameters().get("methods");
                 boolean hasMethod = false;
                 if (methodsStr == null || !methodsStr.contains(",")) {
@@ -123,6 +127,8 @@ public class DubboProtocol extends AbstractProtocol {
             }
             RpcContext rpcContext = RpcContext.getContext();
             rpcContext.setRemoteAddress(channel.getRemoteAddress());
+
+            // 通过 Invoker 调用具体的服务
             Result result = invoker.invoke(inv);
 
             if (result instanceof AsyncRpcResult) {
@@ -219,7 +225,10 @@ public class DubboProtocol extends AbstractProtocol {
                         .equals(NetUtils.filterLocalHost(address.getAddress().getHostAddress()));
     }
 
+
     Invoker<?> getInvoker(Channel channel, Invocation inv) throws RemotingException {
+
+        // 忽略回调和本地存根相关逻辑
         boolean isCallBackServiceInvoke = false;
         boolean isStubServiceInvoke = false;
         int port = channel.getLocalAddress().getPort();
@@ -239,13 +248,19 @@ public class DubboProtocol extends AbstractProtocol {
         }
 
         // eg : org.apache.dubbo.demo.DemoService:20880
+        //   计算 service key，格式为 groupName/serviceName:serviceVersion:port。比如：
+        //   dubbo/com.alibaba.dubbo.demo.DemoService:1.0.0:20880
         String serviceKey = serviceKey(port, path, inv.getAttachments().get(Constants.VERSION_KEY), inv.getAttachments().get(Constants.GROUP_KEY));
+
+        // 从 exporterMap 查找与 serviceKey 相对应的 DubboExporter 对象，
+        // 服务导出过程中会将 <serviceKey, DubboExporter> 映射关系存储到 exporterMap 集合中
         DubboExporter<?> exporter = (DubboExporter<?>) exporterMap.get(serviceKey);
 
         if (exporter == null) {
             throw new RemotingException(channel, "Not found exported service: " + serviceKey + " in " + exporterMap.keySet() + ", may be version or group mismatch " + ", channel: consumer: " + channel.getRemoteAddress() + " --> provider: " + channel.getLocalAddress() + ", message:" + inv);
         }
 
+        // 获取 Invoker 对象，并返回
         return exporter.getInvoker();
     }
 
@@ -431,7 +446,9 @@ public class DubboProtocol extends AbstractProtocol {
 
         // 创建 DubboInvoker
         // create rpc invoker.
+
         // getClients。这个方法用于获取客户端实例，
+
         // 实例类型为 ExchangeClient。
         // ExchangeClient 实际上并不具备通信能力，它需要基于更底层的客户端实例进行通信。
         // 比如 NettyClient、MinaClient 等，默认情况下，Dubbo 使用 NettyClient 进行通信。

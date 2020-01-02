@@ -75,11 +75,17 @@ public class ConfigManager {
     private static final Logger logger = LoggerFactory.getLogger(ConfigManager.class);
     private static final ConfigManager configManager = new ConfigManager();
 
+    /**
+     * 一个应用只能有一个
+     */
     private ApplicationConfig application;
     private MonitorConfig monitor;
     private ModuleConfig module;
     private ConfigCenterConfig configCenter;
 
+    /**
+     * 可以有多个
+     */
     private Map<String, ProtocolConfig> protocols = new ConcurrentHashMap<>();
     private Map<String, RegistryConfig> registries = new ConcurrentHashMap<>();
     private Map<String, ProviderConfig> providers = new ConcurrentHashMap<>();

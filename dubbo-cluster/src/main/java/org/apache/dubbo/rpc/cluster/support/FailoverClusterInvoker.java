@@ -54,6 +54,8 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Result doInvoke(Invocation invocation, final List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
         List<Invoker<T>> copyInvokers = invokers;
+
+        // 检查集合是否为空
         checkInvokers(copyInvokers, invocation);
         String methodName = RpcUtils.getMethodName(invocation);
         int len = getUrl().getMethodParameter(methodName, Constants.RETRIES_KEY, Constants.DEFAULT_RETRIES) + 1;
@@ -61,33 +63,31 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
             len = 1;
         }
         // retry loop.
-        RpcException le = null; // last exception.
-        List<Invoker<T>> invoked = new ArrayList<Invoker<T>>(copyInvokers.size()); // invoked invokers.
-        Set<String> providers = new HashSet<String>(len);
+        // last exception.
+        RpcException le = null;
+
+        // invoked invokers.
+        List<Invoker<T>> invoked = new ArrayList<>(copyInvokers.size());
+        Set<String> providers = new HashSet<>(len);
         for (int i = 0; i < len; i++) {
             //Reselect before retry to avoid a change of candidate `invokers`.
             //NOTE: if `invokers` changed, then `invoked` also lose accuracy.
+            // 调用前重新选择，避免候选 invokers 已发生改变
             if (i > 0) {
                 checkWhetherDestroyed();
                 copyInvokers = list(invocation);
                 // check again
                 checkInvokers(copyInvokers, invocation);
             }
+
+            // 挑选一个 invoker 负载均衡等
             Invoker<T> invoker = select(loadbalance, invocation, copyInvokers, invoked);
             invoked.add(invoker);
             RpcContext.getContext().setInvokers((List) invoked);
             try {
                 Result result = invoker.invoke(invocation);
                 if (le != null && logger.isWarnEnabled()) {
-                    logger.warn("Although retry the method " + methodName
-                            + " in the service " + getInterface().getName()
-                            + " was successful by the provider " + invoker.getUrl().getAddress()
-                            + ", but there have been failed providers " + providers
-                            + " (" + providers.size() + "/" + copyInvokers.size()
-                            + ") from the registry " + directory.getUrl().getAddress()
-                            + " on the consumer " + NetUtils.getLocalHost()
-                            + " using the dubbo version " + Version.getVersion() + ". Last error is: "
-                            + le.getMessage(), le);
+                    logger.warn("Although retry the method " + methodName + " in the service " + getInterface().getName() + " was successful by the provider " + invoker.getUrl().getAddress() + ", but there have been failed providers " + providers + " (" + providers.size() + "/" + copyInvokers.size() + ") from the registry " + directory.getUrl().getAddress() + " on the consumer " + NetUtils.getLocalHost() + " using the dubbo version " + Version.getVersion() + ". Last error is: " + le.getMessage(), le);
                 }
                 return result;
             } catch (RpcException e) {

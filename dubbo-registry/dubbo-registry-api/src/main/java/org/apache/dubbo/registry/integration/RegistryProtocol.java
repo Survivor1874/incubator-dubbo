@@ -402,6 +402,16 @@ public class RegistryProtocol implements Protocol {
                 .build();
 
         // 获取注册中心实例
+        /* ZooleeperRegistry
+         * zookeeper://127.0.0.1:2181/org.apache.dubbo.registry.RegistryService?
+         * application=demo-consumer&
+         * backup=127.0.0.1:2182,127.0.0.1:2183&
+         * dubbo=2.0.2&
+         * interface=org.apache.dubbo.registry.RegistryService&
+         * pid=49392&
+         * qos.port=33333&
+         * timestamp=1570606283827
+         */
         Registry registry = registryFactory.getRegistry(url);
         if (RegistryService.class.equals(type)) {
             return proxyFactory.getInvoker((T) registry, type, url);
@@ -450,23 +460,29 @@ public class RegistryProtocol implements Protocol {
         directory.setRegistry(registry);
         directory.setProtocol(protocol);
         // all attributes of REFER_KEY
+        // {side=consumer, register.ip=10.0.24.200, default.lazy=false, lazy=false, methods=sayHello, qos.port=33333, dubbo=2.0.2, pid=72938, check=false, interface=org.apache.dubbo.demo.DemoService, application=demo-consumer, sticky=false, default.sticky=false, timestamp=1573634510583}
         Map<String, String> parameters = new HashMap<String, String>(directory.getUrl().getParameters());
 
         // 生成服务消费者链接
+        // consumer://10.0.24.200/org.apache.dubbo.demo.DemoService?application=demo-consumer&check=false&default.lazy=false&default.sticky=false&dubbo=2.0.2&interface=org.apache.dubbo.demo.DemoService&lazy=false&methods=sayHello&pid=72938&qos.port=33333&side=consumer&sticky=false&timestamp=1573634510583
         URL subscribeUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
 
         // 注册服务消费者，在 consumers 目录下新节点
         if (!ANY_VALUE.equals(url.getServiceInterface()) && url.getParameter(REGISTER_KEY, true)) {
             directory.setRegisteredConsumerUrl(getRegisteredConsumerUrl(subscribeUrl, url));
+
+            // FailbackRegistry
             registry.register(directory.getRegisteredConsumerUrl());
         }
+
+        // [org.apache.dubbo.rpc.cluster.router.mock.MockInvokersSelector@5c00384f, org.apache.dubbo.rpc.cluster.router.tag.TagRouter@3b7ff809, org.apache.dubbo.rpc.cluster.router.condition.config.AppRouter@1bb564e2, org.apache.dubbo.rpc.cluster.router.condition.config.ServiceRouter@62e6b5c8]
         directory.buildRouterChain(subscribeUrl);
 
         // 订阅 providers、configurators、routers 等节点数据
-        directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY,
-                PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
+        directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY, PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
 
         // 一个注册中心可能有多个服务提供者，因此这里需要将多个服务提供者合并为一个
+        // MockClusterWrapper
         Invoker invoker = cluster.join(directory);
         ProviderConsumerRegTable.registerConsumer(invoker, url, subscribeUrl, directory);
         return invoker;

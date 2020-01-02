@@ -71,8 +71,7 @@ public class ClassHelper {
         }
     }
 
-    public static Class<?> forNameWithThreadContextClassLoader(String name)
-            throws ClassNotFoundException {
+    public static Class<?> forNameWithThreadContextClassLoader(String name) throws ClassNotFoundException {
         return forName(name, Thread.currentThread().getContextClassLoader());
     }
 

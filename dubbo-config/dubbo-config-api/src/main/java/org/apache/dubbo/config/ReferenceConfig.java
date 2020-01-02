@@ -269,7 +269,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
 
         checkStubAndLocal(interfaceClass);
         checkMock(interfaceClass);
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = new HashMap<>();
 
         // 添加 side、协议版本信息、时间戳和进程号等信息到 map 中
         map.put(Constants.SIDE_KEY, Constants.CONSUMER_SIDE);
@@ -363,7 +363,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
      * 若 urls 元素数量大于1，即存在多个注册中心或服务直连 url，此时先根据 url 构建 Invoker。
      * 然后再通过 Cluster 合并多个 Invoker，最后调用 ProxyFactory 生成代理类。
      *
-     * @param map
+     * @param map {side=consumer, register.ip=10.0.24.200, release=, methods=sayHello, default.lazy=false, lazy=false, qos.port=33333, dubbo=2.0.2, pid=72492, check=false, interface=org.apache.dubbo.demo.DemoService, application=demo-consumer, sticky=false, default.sticky=false, timestamp=1573634060322}
      * @return
      */
     @SuppressWarnings({"unchecked", "rawtypes", "deprecation"})
@@ -418,6 +418,8 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                 // 加载注册中心 url
                 // assemble URL from register center's configuration
                 checkRegistry();
+
+                // registry://127.0.0.1:2181/org.apache.dubbo.registry.RegistryService?application=demo-consumer&backup=127.0.0.1:2182,127.0.0.1:2183&dubbo=2.0.2&pid=72938&qos.port=33333&registry=zookeeper&timestamp=1573634695089
                 List<URL> us = loadRegistries(false);
                 if (CollectionUtils.isNotEmpty(us)) {
                     for (URL u : us) {
@@ -427,6 +429,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                         }
 
                         // 添加 refer 参数到 url 中，并将 url 添加到 urls 中
+                        // registry://127.0.0.1:2181/org.apache.dubbo.registry.RegistryService?application=demo-consumer&backup=127.0.0.1:2182,127.0.0.1:2183&dubbo=2.0.2&pid=72938&qos.port=33333&refer=application%3Ddemo-consumer%26check%3Dfalse%26default.lazy%3Dfalse%26default.sticky%3Dfalse%26dubbo%3D2.0.2%26interface%3Dorg.apache.dubbo.demo.DemoService%26lazy%3Dfalse%26methods%3DsayHello%26pid%3D72938%26qos.port%3D33333%26register.ip%3D10.0.24.200%26side%3Dconsumer%26sticky%3Dfalse%26timestamp%3D1573634510583&registry=zookeeper&timestamp=1573634695089
                         urls.add(u.addParameterAndEncoded(Constants.REFER_KEY, StringUtils.toQueryString(map)));
                     }
                 }
@@ -442,6 +445,8 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
             if (urls.size() == 1) {
 
                 // 调用 RegistryProtocol 的 refer 构建 Invoker 实例
+                // ProtocolFilterWrapper -> ProtocolListenerWrapper -> RegistryProtocol
+                // invoker :interface org.apache.dubbo.demo.DemoService -> zookeeper://127.0.0.1:2181/org.apache.dubbo.registry.RegistryService?anyhost=true&application=demo-consumer&bean.name=org.apache.dubbo.demo.DemoService&check=false&default.deprecated=false&default.dynamic=false&default.lazy=false&default.register=true&default.sticky=false&deprecated=false&dubbo=2.0.2&dynamic=false&generic=false&interface=org.apache.dubbo.demo.DemoService&lazy=false&methods=sayHello&pid=72938&qos.port=33333&register=true&register.ip=10.0.24.200&remote.application=demo-provider&remote.timestamp=1573634035357&side=consumer&sticky=false&timestamp=1573634510583,directory: org.apache.dubbo.registry.integration.RegistryDirectory@5860f3d7
                 invoker = refprotocol.refer(interfaceClass, urls.get(0));
             } else {
                 List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
@@ -495,7 +500,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
             metadataReportService.publishConsumer(consumerURL);
         }
 
-        // 生成代理类
+        // 生成代理类 StubProxyFactoryWrapper -> AbstractProxyFactory -> JavassistProxyFactory -> Proxy -> ClassHelper
         // create service proxy
         return (T) proxyFactory.getProxy(invoker);
     }
@@ -509,6 +514,8 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
      * call, which is the default behavior
      */
     protected boolean shouldJvmRefer(Map<String, String> map) {
+
+        // temp://localhost?application=demo-consumer&check=false&default.lazy=false&default.sticky=false&dubbo=2.0.2&interface=org.apache.dubbo.demo.DemoService&lazy=false&methods=sayHello&pid=72492&qos.port=33333&register.ip=10.0.24.200&release=&side=consumer&sticky=false&timestamp=1573634060322
         URL tmpUrl = new URL("temp", "localhost", 0, map);
         boolean isJvmRefer;
         if (isInjvm() == null) {
